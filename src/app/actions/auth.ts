@@ -1,0 +1,136 @@
+"use server";
+
+import { createHash, randomInt, timingSafeEqual } from "crypto";
+import { redirect } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { clearSessionCookie, setSessionCookie } from "@/lib/auth";
+import { sendLoginCodeEmail } from "@/lib/email";
+
+function text(formData: FormData, name: string) {
+  return String(formData.get(name) ?? "").trim();
+}
+
+function isAllowedEmail(email: string) {
+  return email.endsWith("@grupalia.com") && email.length > "@grupalia.com".length;
+}
+
+function nameFromEmail(email: string) {
+  const localPart = email.split("@")[0] ?? "Usuario";
+  return localPart
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ") || "Usuario";
+}
+
+function createLoginCode() {
+  return String(randomInt(0, 1_000_000)).padStart(6, "0");
+}
+
+function hashLoginCode(email: string, code: string) {
+  return createHash("sha256")
+    .update(`${email}:${code}:${process.env.AUTH_SECRET ?? "local-dev-secret-change-me"}`)
+    .digest("hex");
+}
+
+function hashesMatch(expected: string, actual: string) {
+  const expectedBuffer = Buffer.from(expected);
+  const actualBuffer = Buffer.from(actual);
+
+  if (expectedBuffer.length !== actualBuffer.length) return false;
+  return timingSafeEqual(expectedBuffer, actualBuffer);
+}
+
+export async function registerAction(formData: FormData) {
+  return requestLoginCodeAction(formData);
+}
+
+export async function requestLoginCodeAction(formData: FormData) {
+  const email = text(formData, "email").toLowerCase();
+
+  if (!isAllowedEmail(email)) {
+    redirect("/login?error=Solo se permiten correos @grupalia.com.");
+  }
+
+  const code = createLoginCode();
+  await prisma.emailLoginCode.create({
+    data: {
+      email,
+      codeHash: hashLoginCode(email, code),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+    }
+  });
+
+  try {
+    await sendLoginCodeEmail(email, code);
+  } catch (error) {
+    console.error(error);
+    redirect("/login?error=No pude enviar el código. Revisa la configuración de correo.");
+  }
+
+  redirect(
+    `/login/verify?email=${encodeURIComponent(email)}&notice=${encodeURIComponent("Te enviamos un código de 6 dígitos. Revisa tu correo.")}`
+  );
+}
+
+export async function verifyLoginCodeAction(formData: FormData) {
+  const email = text(formData, "email").toLowerCase();
+  const code = text(formData, "code").replace(/\D/g, "");
+
+  if (!isAllowedEmail(email)) {
+    redirect("/login?error=Solo se permiten correos @grupalia.com.");
+  }
+
+  if (code.length !== 6) {
+    redirect(
+      `/login/verify?email=${encodeURIComponent(email)}&error=${encodeURIComponent("Escribe el código de 6 dígitos.")}`
+    );
+  }
+
+  const loginCode = await prisma.emailLoginCode.findFirst({
+    where: {
+      email,
+      usedAt: null,
+      expiresAt: {
+        gt: new Date()
+      }
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+
+  const submittedHash = hashLoginCode(email, code);
+  if (!loginCode || !hashesMatch(loginCode.codeHash, submittedHash)) {
+    redirect(
+      `/login/verify?email=${encodeURIComponent(email)}&error=${encodeURIComponent("El código no es correcto o ya venció.")}`
+    );
+  }
+
+  await prisma.emailLoginCode.update({
+    where: { id: loginCode.id },
+    data: { usedAt: new Date() }
+  });
+
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: {
+      name: nameFromEmail(email),
+      email,
+      passwordHash: "email-only-login"
+    }
+  });
+
+  setSessionCookie(user.id);
+  redirect("/dashboard");
+}
+
+export async function loginAction(formData: FormData) {
+  return requestLoginCodeAction(formData);
+}
+
+export async function logoutAction() {
+  clearSessionCookie();
+  redirect("/login");
+}

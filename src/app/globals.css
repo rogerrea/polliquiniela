@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --grupalia-purple: #7c3aed;
+  --grupalia-purple-dark: #6d28d9;
+  --grupalia-lavender: #f2e8ff;
+  --grupalia-ink: #171b25;
+  --grupalia-muted: #5f6573;
+  --grupalia-line: #e8e8ef;
+  --grupalia-surface: #ffffff;
+  --grupalia-bg: #fbfbfd;
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, rgba(124, 58, 237, 0.07), transparent 28rem),
+    var(--grupalia-bg);
+  color: var(--grupalia-ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+input,
+select,
+button,
+textarea {
+  font: inherit;
+}
+
+@layer base {
+  h1 {
+    @apply tracking-tight text-slate-950;
+  }
+
+  h2,
+  h3 {
+    @apply tracking-tight text-slate-950;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply bg-white transition focus:border-violet-500 focus:outline-none focus:ring-4 focus:ring-violet-100;
+  }
+
+  button {
+    @apply transition;
+  }
+
+  a {
+    @apply transition;
+  }
+}
+
+@layer components {
+  .bg-violet-600 {
+    background-image: linear-gradient(135deg, #7c3aed, #7b2ff2);
+  }
+
+  .bg-violet-600:hover {
+    background-image: linear-gradient(135deg, #6d28d9, #6b21d8);
+  }
+
+  .rounded-lg.border.bg-white,
+  section.rounded-lg,
+  form.rounded-lg {
+    @apply shadow-[0_10px_30px_rgba(15,23,42,0.06)];
+  }
+}
+
+@keyframes prize-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.animate-prize-float {
+  animation: prize-float 3s ease-in-out infinite;
+}
