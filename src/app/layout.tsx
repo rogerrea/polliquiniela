@@ -4,7 +4,7 @@ import { Nav } from "@/components/Nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "PolliQuiniela Mundialista - Grupalia",
+  title: "PolliQuiniela - Grupalia",
   description: "La quiniela mundialista de Grupalia."
 };
 

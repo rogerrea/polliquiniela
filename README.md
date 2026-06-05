@@ -131,6 +131,17 @@ La quiniela del torneo incluye campeón y subcampeón. Ya no incluye goleador.
 npm run test
 ```
 
+## Probar Escenarios Falsos En Local
+
+Para revisar cómo se vería la tabla a mitad o al final del torneo, puedes cargar datos falsos en tu base local:
+
+```bash
+npm run scenario:mid
+npm run scenario:end
+```
+
+Esto crea usuarios demo, resultados ficticios, puntos, premios y pronósticos. Solo debe usarse en local/desarrollo, no en producción.
+
 ## Deployment En Vercel
 
 La app local usa SQLite, pero en Vercel debe usar Postgres porque SQLite es un archivo local y no sirve como base permanente en producción.

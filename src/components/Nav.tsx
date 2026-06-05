@@ -13,7 +13,7 @@ export async function Nav() {
             <span className="absolute -bottom-1 right-0 h-3 w-9 rounded-b-full border-b-4 border-violet-600" />
           </span>
           <span className="hidden text-sm font-semibold text-slate-500 md:inline">
-            Mundialista - Grupalia
+            Grupalia
           </span>
         </Link>
         <nav className="flex flex-wrap items-center gap-3 text-sm">

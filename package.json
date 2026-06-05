@@ -12,6 +12,8 @@
     "prisma:migrate:vercel": "prisma migrate deploy --schema prisma-postgres/schema.prisma",
     "seed": "prisma db seed",
     "seed:vercel:initial": "prisma db seed --schema prisma-postgres/schema.prisma",
+    "scenario:mid": "tsx scripts/dev-scenario.ts mid",
+    "scenario:end": "tsx scripts/dev-scenario.ts end",
     "test:email": "tsx scripts/test-auth-email.ts",
     "test": "vitest run"
   },
