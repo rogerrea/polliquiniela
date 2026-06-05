@@ -40,6 +40,12 @@ email: usuario@grupalia.com
 No hay contraseña. Para entrar solo escribe un correo que termine en `@grupalia.com`.
 La app envía un código de 6 dígitos a ese correo y solo entra quien pueda leerlo.
 
+En ambiente local/pruebas, también puedes entrar con este código fijo:
+
+```text
+111111
+```
+
 Para enviar correos de verdad puedes usar un servicio externo.
 
 Opción recomendada para esta app: Resend.
