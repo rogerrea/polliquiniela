@@ -11,9 +11,13 @@ function formatPrize(value: number | null) {
 }
 
 export async function FloatingPrizeBanner() {
-  const prizeConfig = await prisma.prizeConfig.findUnique({
-    where: { id: "default" }
-  });
+  if (!process.env.DATABASE_URL?.trim()) return null;
+
+  const prizeConfig = await prisma.prizeConfig
+    .findUnique({
+      where: { id: "default" }
+    })
+    .catch(() => null);
 
   const firstPrize = formatPrize(prizeConfig?.firstPlacePrize ?? null);
   const secondPrize = formatPrize(prizeConfig?.secondPlacePrize ?? null);

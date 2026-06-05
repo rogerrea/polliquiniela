@@ -170,7 +170,13 @@ Si usas Resend, las variables SMTP pueden quedar vacías.
 npm run build:vercel
 ```
 
-Ese comando genera Prisma para Postgres, aplica las tablas y construye la app.
+Ese comando genera Prisma para Postgres y construye la app.
+
+Después de conectar la base Postgres, aplica las tablas con:
+
+```bash
+npm run prisma:migrate:vercel
+```
 
 ### Cargar Datos Iniciales En Producción
 
