@@ -52,10 +52,18 @@ Opción recomendada para esta app: Resend.
 
 ```text
 RESEND_API_KEY="re_xxxxxxxxx"
-RESEND_FROM="PolliQuiniela Mundialista <login@quiniela.grupalia.com>"
+RESEND_FROM="onboarding@resend.dev"
 ```
 
-Para que Resend mande a cualquier persona de Grupalia, tienes que verificar un dominio o subdominio. Recomendación:
+Reemplaza `re_xxxxxxxxx` con tu API key real de Resend. No pegues esa llave en chats ni documentos públicos.
+
+Para probar un correo simple con la dirección default de Resend:
+
+```bash
+npm run test:resend -- tu-correo@example.com
+```
+
+Para producción formal, lo ideal es que Resend mande desde un dominio propio. Para eso tienes que verificar un dominio o subdominio. Recomendación:
 
 ```text
 quiniela.grupalia.com

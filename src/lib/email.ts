@@ -12,7 +12,7 @@ async function sendWithResend(email: string, code: string) {
   const from =
     requiredEnv("RESEND_FROM") ??
     requiredEnv("SMTP_FROM") ??
-    "PolliQuiniela Mundialista <quiniela@grupalia.com>";
+    "onboarding@resend.dev";
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
