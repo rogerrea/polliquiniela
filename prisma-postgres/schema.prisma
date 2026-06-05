@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    String                @id @default(cuid())
+  name                  String
+  email                 String                @unique
+  passwordHash          String
+  isAdmin               Boolean               @default(false)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  predictions           Prediction[]
+  groupPredictions      GroupPrediction[]
+  tournamentPrediction  TournamentPrediction?
+}
+
+model EmailLoginCode {
+  id          String    @id @default(cuid())
+  email       String
+  codeHash    String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
+}
+
+model Team {
+  id                           String                 @id @default(cuid())
+  name                         String
+  fifaCode                     String                 @unique
+  groupLetter                  String?
+  flagUrl                      String?
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+  homeMatches                  Match[]                @relation("HomeTeam")
+  awayMatches                  Match[]                @relation("AwayTeam")
+  wonMatches                   Match[]                @relation("WinnerTeam")
+  predictionsAsWinner          Prediction[]           @relation("PredictedWinner")
+  firstPlaceGroupPicks         GroupPrediction[]      @relation("GroupFirstPick")
+  secondPlaceGroupPicks        GroupPrediction[]      @relation("GroupSecondPick")
+  actualFirstPlaceGroups       GroupActual[]          @relation("GroupActualFirst")
+  actualSecondPlaceGroups      GroupActual[]          @relation("GroupActualSecond")
+  championTournamentPicks      TournamentPrediction[] @relation("ChampionPick")
+  runnerUpTournamentPicks      TournamentPrediction[] @relation("RunnerUpPick")
+  actualChampionResults        TournamentActual[]     @relation("ActualChampion")
+  actualRunnerUpResults        TournamentActual[]     @relation("ActualRunnerUp")
+}
+
+model GroupPrediction {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupLetter    String
+  firstTeamId    String?
+  firstTeam      Team?    @relation("GroupFirstPick", fields: [firstTeamId], references: [id])
+  secondTeamId   String?
+  secondTeam     Team?    @relation("GroupSecondPick", fields: [secondTeamId], references: [id])
+  points         Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, groupLetter])
+}
+
+model GroupActual {
+  id             String   @id @default(cuid())
+  groupLetter    String   @unique
+  firstTeamId    String?
+  firstTeam      Team?    @relation("GroupActualFirst", fields: [firstTeamId], references: [id])
+  secondTeamId   String?
+  secondTeam     Team?    @relation("GroupActualSecond", fields: [secondTeamId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Match {
+  id                  String        @id @default(cuid())
+  fifaMatchNumber     Int?
+  stage               String
+  groupLetter         String?
+  homeTeamId          String?
+  awayTeamId          String?
+  homeTeam            Team?         @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam            Team?         @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeScore           Int?
+  awayScore           Int?
+  winnerTeamId        String?
+  winnerTeam          Team?         @relation("WinnerTeam", fields: [winnerTeamId], references: [id])
+  homeSeed            String?
+  awaySeed            String?
+  venue               String?
+  verifyUrl           String?
+  startsAt            DateTime
+  status              String        @default("SCHEDULED")
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  predictions         Prediction[]
+}
+
+model Prediction {
+  id                      String   @id @default(cuid())
+  userId                  String
+  matchId                 String
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match                   Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  predictedHomeScore      Int
+  predictedAwayScore      Int
+  predictedWinnerTeamId   String?
+  predictedWinnerTeam     Team?    @relation("PredictedWinner", fields: [predictedWinnerTeamId], references: [id])
+  points                  Int      @default(0)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([userId, matchId])
+}
+
+model TournamentPrediction {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  championTeamId     String?
+  championTeam       Team?    @relation("ChampionPick", fields: [championTeamId], references: [id])
+  runnerUpTeamId     String?
+  runnerUpTeam       Team?    @relation("RunnerUpPick", fields: [runnerUpTeamId], references: [id])
+  topScorerName      String?
+  points             Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model TournamentActual {
+  id                 String   @id @default("default")
+  championTeamId     String?
+  championTeam       Team?    @relation("ActualChampion", fields: [championTeamId], references: [id])
+  runnerUpTeamId     String?
+  runnerUpTeam       Team?    @relation("ActualRunnerUp", fields: [runnerUpTeamId], references: [id])
+  topScorerName      String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model PrizeConfig {
+  id                String   @id @default("default")
+  firstPlacePrize   Int?
+  secondPlacePrize  Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

@@ -1,0 +1,4 @@
+ALTER TABLE "Match" ADD COLUMN "homeSeed" TEXT;
+ALTER TABLE "Match" ADD COLUMN "awaySeed" TEXT;
+ALTER TABLE "Match" ADD COLUMN "venue" TEXT;
+ALTER TABLE "Match" ADD COLUMN "verifyUrl" TEXT;

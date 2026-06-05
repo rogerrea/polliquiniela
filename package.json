@@ -1,0 +1,44 @@
+{
+  "name": "world-cup-2026-prediction-pool",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:vercel": "prisma generate --schema prisma-postgres/schema.prisma && prisma migrate deploy --schema prisma-postgres/schema.prisma && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate:vercel": "prisma generate --schema prisma-postgres/schema.prisma",
+    "prisma:migrate:vercel": "prisma migrate deploy --schema prisma-postgres/schema.prisma",
+    "seed": "prisma db seed",
+    "seed:vercel:initial": "prisma db seed --schema prisma-postgres/schema.prisma",
+    "test:email": "tsx scripts/test-auth-email.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@types/nodemailer": "^8.0.0",
+    "bcryptjs": "^2.4.3",
+    "next": "^14.2.20",
+    "nodemailer": "^8.0.9",
+    "prisma": "^6.19.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
