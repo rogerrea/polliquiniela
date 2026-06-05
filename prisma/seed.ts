@@ -2,6 +2,10 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+const seedOnlyIfEmpty = process.env.SEED_ONLY_IF_EMPTY === "true";
+const destructiveSeed =
+  process.env.ALLOW_DESTRUCTIVE_SEED === "true" ||
+  (process.env.NODE_ENV !== "production" && !seedOnlyIfEmpty);
 
 const VERIFY_URL =
   "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/match-schedule-fixtures-results-teams-stadiums";
@@ -165,6 +169,18 @@ F1|1|FINAL||||WS1|WS2|2026-07-19T21:00:00.000Z|MetLife Stadium, New York
 `;
 
 async function main() {
+  if (seedOnlyIfEmpty) {
+    const [teamCount, matchCount] = await Promise.all([
+      prisma.team.count(),
+      prisma.match.count()
+    ]);
+
+    if (teamCount > 0 || matchCount > 0) {
+      console.log("Seed skipped because production data already exists.");
+      return;
+    }
+  }
+
   const passwordHash = await bcrypt.hash("email-only-login", 10);
 
   await prisma.user.upsert({
@@ -188,13 +204,15 @@ async function main() {
     }
   });
 
-  await prisma.prediction.deleteMany({});
-  await prisma.tournamentPrediction.deleteMany({});
-  await prisma.groupPrediction.deleteMany({});
-  await prisma.groupActual.deleteMany({});
-  await prisma.emailLoginCode.deleteMany({});
-  await prisma.prizeConfig.deleteMany({});
-  await prisma.match.deleteMany({});
+  if (destructiveSeed) {
+    await prisma.prediction.deleteMany({});
+    await prisma.tournamentPrediction.deleteMany({});
+    await prisma.groupPrediction.deleteMany({});
+    await prisma.groupActual.deleteMany({});
+    await prisma.emailLoginCode.deleteMany({});
+    await prisma.prizeConfig.deleteMany({});
+    await prisma.match.deleteMany({});
+  }
 
   const teamByCode = new Map<string, string>();
   const officialTeamCodes = teamsCsv
@@ -212,13 +230,15 @@ async function main() {
     teamByCode.set(fifaCode, team.id);
   }
 
-  await prisma.team.deleteMany({
-    where: {
-      fifaCode: {
-        notIn: officialTeamCodes
+  if (destructiveSeed) {
+    await prisma.team.deleteMany({
+      where: {
+        fifaCode: {
+          notIn: officialTeamCodes
+        }
       }
-    }
-  });
+    });
+  }
 
   for (const line of matchesCsv.trim().split("\n")) {
     const [
@@ -234,31 +254,58 @@ async function main() {
       venue
     ] = line.split("|");
 
-    await prisma.match.create({
-      data: {
+    const data = {
+      fifaMatchNumber: Number(matchNumber),
+      stage,
+      groupLetter: groupLetter || null,
+      homeTeamId: homeCode ? teamByCode.get(homeCode) : null,
+      awayTeamId: awayCode ? teamByCode.get(awayCode) : null,
+      homeSeed: homeSeed || null,
+      awaySeed: awaySeed || null,
+      startsAt: new Date(startsAt),
+      venue,
+      verifyUrl: VERIFY_URL,
+      status: "SCHEDULED"
+    };
+
+    await prisma.match.upsert({
+      where: { id },
+      update: destructiveSeed
+        ? data
+        : {
+            fifaMatchNumber: data.fifaMatchNumber,
+            stage: data.stage,
+            groupLetter: data.groupLetter,
+            homeTeamId: data.homeTeamId,
+            awayTeamId: data.awayTeamId,
+            homeSeed: data.homeSeed,
+            awaySeed: data.awaySeed,
+            startsAt: data.startsAt,
+            venue: data.venue,
+            verifyUrl: data.verifyUrl
+          },
+      create: {
         id,
-        fifaMatchNumber: Number(matchNumber),
-        stage,
-        groupLetter: groupLetter || null,
-        homeTeamId: homeCode ? teamByCode.get(homeCode) : null,
-        awayTeamId: awayCode ? teamByCode.get(awayCode) : null,
-        homeSeed: homeSeed || null,
-        awaySeed: awaySeed || null,
-        startsAt: new Date(startsAt),
-        venue,
-        verifyUrl: VERIFY_URL,
-        status: "SCHEDULED"
+        ...data
       }
     });
   }
 
+  await prisma.prizeConfig.upsert({
+    where: { id: "default" },
+    update: {},
+    create: { id: "default" }
+  });
+
   await prisma.tournamentActual.upsert({
     where: { id: "default" },
-    update: {
-      championTeamId: null,
-      runnerUpTeamId: null,
-      topScorerName: null
-    },
+    update: destructiveSeed
+      ? {
+          championTeamId: null,
+          runnerUpTeamId: null,
+          topScorerName: null
+        }
+      : {},
     create: { id: "default" }
   });
 }

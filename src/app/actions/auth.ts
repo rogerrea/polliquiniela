@@ -24,18 +24,22 @@ function nameFromEmail(email: string) {
 }
 
 function createLoginCode() {
-  if (process.env.NODE_ENV !== "production") {
+  if (isTestLoginEnabled()) {
     return process.env.AUTH_TEST_CODE ?? "111111";
   }
 
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
 }
 
-function isValidTestCode(code: string) {
+function isTestLoginEnabled() {
   return (
-    process.env.NODE_ENV !== "production" &&
-    code === (process.env.AUTH_TEST_CODE ?? "111111")
+    process.env.NODE_ENV !== "production" ||
+    process.env.AUTH_TEST_CODE_ENABLED === "true"
   );
+}
+
+function isValidTestCode(code: string) {
+  return isTestLoginEnabled() && code === (process.env.AUTH_TEST_CODE ?? "111111");
 }
 
 function hashLoginCode(email: string, code: string) {
@@ -83,6 +87,12 @@ export async function requestLoginCodeAction(formData: FormData) {
   } catch (error) {
     console.error(error);
     redirect(setupErrorUrl("/login"));
+  }
+
+  if (isTestLoginEnabled()) {
+    redirect(
+      `/login/verify?email=${encodeURIComponent(email)}&notice=${encodeURIComponent("Usa el código de prueba 111111.")}`
+    );
   }
 
   try {
