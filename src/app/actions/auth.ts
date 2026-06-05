@@ -52,6 +52,14 @@ function hashesMatch(expected: string, actual: string) {
   return timingSafeEqual(expectedBuffer, actualBuffer);
 }
 
+function setupErrorUrl(path: string) {
+  const message =
+    "La base de datos de producción todavía no está configurada. Conecta Postgres en Vercel y aplica las tablas.";
+  const separator = path.includes("?") ? "&" : "?";
+
+  return `${path}${separator}error=${encodeURIComponent(message)}`;
+}
+
 export async function registerAction(formData: FormData) {
   return requestLoginCodeAction(formData);
 }
@@ -64,13 +72,18 @@ export async function requestLoginCodeAction(formData: FormData) {
   }
 
   const code = createLoginCode();
-  await prisma.emailLoginCode.create({
-    data: {
-      email,
-      codeHash: hashLoginCode(email, code),
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
-    }
-  });
+  try {
+    await prisma.emailLoginCode.create({
+      data: {
+        email,
+        codeHash: hashLoginCode(email, code),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    redirect(setupErrorUrl("/login"));
+  }
 
   try {
     await sendLoginCodeEmail(email, code);
@@ -98,18 +111,25 @@ export async function verifyLoginCodeAction(formData: FormData) {
     );
   }
 
-  const loginCode = await prisma.emailLoginCode.findFirst({
-    where: {
-      email,
-      usedAt: null,
-      expiresAt: {
-        gt: new Date()
+  let loginCode = null;
+
+  try {
+    loginCode = await prisma.emailLoginCode.findFirst({
+      where: {
+        email,
+        usedAt: null,
+        expiresAt: {
+          gt: new Date()
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
       }
-    },
-    orderBy: {
-      createdAt: "desc"
-    }
-  });
+    });
+  } catch (error) {
+    console.error(error);
+    redirect(setupErrorUrl(`/login/verify?email=${encodeURIComponent(email)}`));
+  }
 
   const submittedHash = hashLoginCode(email, code);
   const validCode =
@@ -123,21 +143,33 @@ export async function verifyLoginCodeAction(formData: FormData) {
   }
 
   if (loginCode) {
-    await prisma.emailLoginCode.update({
-      where: { id: loginCode.id },
-      data: { usedAt: new Date() }
-    });
+    try {
+      await prisma.emailLoginCode.update({
+        where: { id: loginCode.id },
+        data: { usedAt: new Date() }
+      });
+    } catch (error) {
+      console.error(error);
+      redirect(setupErrorUrl(`/login/verify?email=${encodeURIComponent(email)}`));
+    }
   }
 
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: {
-      name: nameFromEmail(email),
-      email,
-      passwordHash: "email-only-login"
-    }
-  });
+  let user;
+
+  try {
+    user = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: {
+        name: nameFromEmail(email),
+        email,
+        passwordHash: "email-only-login"
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    redirect(setupErrorUrl(`/login/verify?email=${encodeURIComponent(email)}`));
+  }
 
   setSessionCookie(user.id);
   redirect("/dashboard");
